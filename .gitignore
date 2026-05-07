@@ -1,0 +1,22 @@
+# Visual Studio and build files
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.pdb
+*.log
+
+# Dependencies
+packages/
+node_modules/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+appsettings.Development.json
