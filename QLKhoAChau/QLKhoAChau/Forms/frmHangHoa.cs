@@ -21,11 +21,12 @@ namespace QLKhoAChau.Forms
             Text = "Quản lý hàng hóa";
             BackColor = Color.WhiteSmoke;
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White };
+            top.Padding = new Padding(0, 40, 0, 0);
             top.Controls.Add(new Label { Text = "QUẢN LÝ HÀNG HÓA", Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(15, 15), AutoSize = true, ForeColor = Color.FromArgb(44, 62, 80) });
-            txtSearch = new TextBox { Location = new Point(300, 15), Width = 220, Font = new Font("Segoe UI", 10) };
-            btnSearch = new Button { Text = "🔍 Tìm", Location = new Point(530, 13), Size = new Size(80, 28) };
+                Location = new Point(15, 50), AutoSize = true, ForeColor = Color.FromArgb(44, 62, 80) });
+            txtSearch = new TextBox { Location = new Point(300, 50), Width = 220, Font = new Font("Segoe UI", 10) };
+            btnSearch = new Button { Text = "🔍 Tìm", Location = new Point(530, 48), Size = new Size(80, 28) };
             btnSearch.Click += (s,e) => LoadGrid(txtSearch.Text);
             top.Controls.AddRange(new Control[] { txtSearch, btnSearch });
 
