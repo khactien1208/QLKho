@@ -12,7 +12,7 @@ namespace QLKhoAChau.Forms
         DataGridView grid;
         TextBox txtMaSP, txtTen, txtDVT, txtGiaNhap, txtGiaBan, txtTonMin, txtSearch;
         ComboBox cboDM, cboNCC;
-        Button btnAdd, btnEdit, btnDel, btnNew, btnSearch;
+        Button btnEdit, btnDel, btnSearch;
         DateTimePicker dtpNSX, dtpHSD;
         int? selectedId = null;
 
@@ -57,14 +57,11 @@ namespace QLKhoAChau.Forms
             pnlForm.Controls.Add(new Label { Text = "Hạn sử dụng:", Location = new Point(15, yy+3), AutoSize = true });     
             dtpHSD = new DateTimePicker { Location = new Point(110, yy), Width = 190, Format = DateTimePickerFormat.Short }; pnlForm.Controls.Add(dtpHSD); yy += 32;
 
-            btnNew = new Button { Text = "Mới", Location = new Point(15, yy), Size = new Size(70, 32) };
-            btnAdd = new Button { Text = "Thêm", Location = new Point(90, yy), Size = new Size(70, 32),
-                BackColor = Color.FromArgb(46, 204, 113), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnEdit = new Button { Text = "Sửa", Location = new Point(165, yy), Size = new Size(70, 32),
                 BackColor = Color.FromArgb(52, 152, 219), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnDel = new Button { Text = "Xóa", Location = new Point(240, yy), Size = new Size(70, 32),
                 BackColor = Color.FromArgb(231, 76, 60), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            pnlForm.Controls.AddRange(new Control[] { btnNew, btnAdd, btnEdit, btnDel });
+            pnlForm.Controls.AddRange(new Control[] { btnEdit, btnDel });
 
             grid = new DataGridView
             {
@@ -148,13 +145,11 @@ namespace QLKhoAChau.Forms
             Controls.Add(pnlForm);
             Controls.Add(top);
 
-            btnNew.Click += (s,e) => ClearForm();
-            btnAdd.Click += BtnAdd_Click;
             btnEdit.Click += BtnEdit_Click;
             btnDel.Click += BtnDel_Click;
 
-            // Phân quyền: Nhân viên chỉ được xem, không sửa/xóa
-            PhanQuyen.ApDungChiXem(btnAdd, btnEdit, btnDel, btnNew,
+            // Phân quyền: Nhân viên chỉ được xem, không sửa
+            PhanQuyen.ApDungChiXem( btnEdit, btnDel,
                 txtMaSP, txtTen, txtDVT, txtGiaNhap, txtGiaBan, txtTonMin,
                 cboDM, cboNCC, dtpNSX, dtpHSD);
 
@@ -281,14 +276,7 @@ namespace QLKhoAChau.Forms
             int.TryParse(txtTonMin.Text, out tt);
             return true;
         }
-        void BtnAdd_Click(object sender, EventArgs e)
-        {
-            if (!Validate(out int dm, out int ncc, out decimal gn, out decimal gb, out int tt, out DateTime ngaySX, out DateTime hanSD)) return;
-            try { HangHoaDAL.Insert(txtMaSP.Text, txtTen.Text, dm, ncc, txtDVT.Text, gn, gb, tt, ngaySX, hanSD);
-                MessageBox.Show("Thêm thành công!"); LoadGrid(""); ClearForm(); 
-                ((frmMain)Application.OpenForms["frmMain"])?.CheckCanhBao(); }
-            catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
-        }
+        
         void BtnEdit_Click(object sender, EventArgs e)
         {
             if (selectedId == null) { MessageBox.Show("Chọn dòng cần sửa!"); return; }
