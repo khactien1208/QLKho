@@ -19,16 +19,24 @@ namespace QLKhoAChau.Forms
         {
             Text = "Phiếu nhập"; BackColor = Color.WhiteSmoke;
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.White };
     
-            top.Controls.Add(new Label { Text = "PHIẾU NHẬP KHO", Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(15, 15), AutoSize = true, ForeColor = Color.FromArgb(44, 62, 80) });
-            
+            var lblTitle = new Label
+            {
+                Text = "PHIẾU NHẬP KHO",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(44, 62, 80),
+                Location = new Point(15, 40)
+            };
+
+            top.Controls.Add(lblTitle);
+                    
 
             var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 250 };
             Controls.Add(split);
             Controls.Add(top);
-
+            top.BringToFront();
             // ----- Trên: danh sách phiếu -----
             gridPhieu = NewGrid();
             gridPhieu.SelectionChanged += (s,e) => {

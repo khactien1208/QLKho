@@ -10,9 +10,9 @@ namespace QLKhoAChau.Forms
         public frmBaoCao()
         {
             Text = "Báo cáo Nhập-Xuất-Tồn"; BackColor = Color.WhiteSmoke;
-            var top = new Panel { Dock = DockStyle.Top, Height = 50, BackColor = Color.White };
-            top.Controls.Add(new Label { Text = "BÁO CÁO NHẬP - XUẤT - TỒN", Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(15, 12), AutoSize = true, ForeColor = Color.FromArgb(44, 62, 80) });
+            var top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.White };
+            top.Controls.Add(new Label { Text = "BÁO CÁO NHẬP - XUẤT - TỒN", Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                Location = new Point(15, 40), AutoSize = true, ForeColor = Color.FromArgb(44, 62, 80) });
             grid = new DataGridView
             {
                 Dock = DockStyle.Fill,

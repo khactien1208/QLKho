@@ -12,7 +12,7 @@ namespace QLKhoAChau.Helpers
             Program.CurrentUser != null &&
             string.Equals(Program.CurrentUser.VaiTro, "NhanVien", System.StringComparison.OrdinalIgnoreCase);
 
-        // Theo yêu cầu: NhanVien chỉ được xem hàng hóa, không được chỉnh sửa/xóa.
+        //NhanVien chỉ được xem hàng hóa, không được chỉnh sửa/xóa.
         // Admin được toàn quyền. ThuKho mặc định vẫn được chỉnh sửa nghiệp vụ kho.
         public static bool CoQuyenChinhSua => !IsNhanVien;
 

@@ -31,12 +31,12 @@ namespace QLKhoAChau.Forms
                 };
             }
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.White };
             top.Controls.Add(new Label
             {
                 Text = "QUẢN LÝ NGƯỜI DÙNG",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(15, 15),
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                Location = new Point(15, 40),
                 AutoSize = true,
                 ForeColor = Color.FromArgb(44, 62, 80)
             });

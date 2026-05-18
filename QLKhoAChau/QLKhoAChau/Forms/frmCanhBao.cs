@@ -11,10 +11,10 @@ namespace QLKhoAChau.Forms
         public frmCanhBao()
         {
             Text = "Cảnh báo tồn thấp"; BackColor = Color.WhiteSmoke;
-            var top = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.FromArgb(231, 76, 60) };
+            var top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.FromArgb(231, 76, 60) };
             top.Controls.Add(new Label { Text = "⚠️  CẢNH BÁO TỒN KHO THẤP",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Color.White,
-                Location = new Point(15, 10), AutoSize = true });
+                Font = new Font("Segoe UI", 16, FontStyle.Bold), ForeColor = Color.White,
+                Location = new Point(15, 40), AutoSize = true });
             lblCount = new Label { Location = new Point(15, 45), AutoSize = true,
                 Font = new Font("Segoe UI", 10), ForeColor = Color.White };
             top.Controls.Add(lblCount);
