@@ -1,108 +1,152 @@
+﻿using QLKhoAChau.DAL;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
 using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using QLKhoAChau.DAL;
 
 namespace QLKhoAChau.Forms
 {
-    public class frmMain : Form
+    public partial class frmMain : Form
     {
-        Panel pnlSide, pnlContent;
-        Label lblUser, lblWarning;
-
         public frmMain()
         {
-            Text = "Quản lý kho - Bánh kẹo Á Châu";
-            WindowState = FormWindowState.Maximized;
-            StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.WhiteSmoke;
+            InitializeComponent();
 
-            pnlSide = new Panel { Dock = DockStyle.Left, Width = 220, BackColor = Color.FromArgb(44, 62, 80) };
-            pnlContent = new Panel { Dock = DockStyle.Fill, BackColor = Color.WhiteSmoke };
+            lblUser.Text =
+                $"👤 {Program.CurrentUser.HoTen}\n({Program.CurrentUser.VaiTro})";
 
-            var lblBrand = new Label {
-                Text = "BÁNH KẸO Á CHÂU",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.White, Dock = DockStyle.Top, Height = 60,
-                TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.FromArgb(192, 57, 43)
-            };
-
-            lblUser = new Label {
-                Dock = DockStyle.Top, Height = 50, ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9), TextAlign = ContentAlignment.MiddleCenter,
-                Text = $"👤 {Program.CurrentUser.HoTen}\n({Program.CurrentUser.VaiTro})"
-            };
-
-            pnlSide.Controls.Add(lblUser);
-            pnlSide.Controls.Add(lblBrand);
-
-            int y = 130;
-            AddMenu("  Hàng hóa", y, () => Open(new frmHangHoa())); y += 50;
-            AddMenu("  Phiếu nhập", y, () => Open(new frmPhieuNhap())); y += 50;
-            AddMenu("  Phiếu xuất", y, () => Open(new frmPhieuXuat())); y += 50;
-            AddMenu("  Tồn kho", y, () => Open(new frmTonKho())); y += 50;
-            AddMenu("  Cảnh báo tồn thấp", y, () => Open(new frmCanhBao())); y += 50;
-            AddMenu("  Báo cáo N-X-T", y, () => Open(new frmBaoCao())); y += 50;
-            if (QLKhoAChau.Helpers.PhanQuyen.IsAdmin)
-            {
-                AddMenu("  Quản lý người dùng", y, () => Open(new frmNguoiDung())); y += 50;
-            }
-            AddMenu("  Đăng xuất", y, () => { Application.Restart(); });
-
-            // Thanh cảnh báo
-            lblWarning = new Label {
-                Dock = DockStyle.Top, Height = 40,
-                BackColor = Color.FromArgb(255, 243, 205), ForeColor = Color.FromArgb(133, 100, 4),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Padding = new Padding(5),
-                Visible = true
-            };
-            pnlContent.Controls.Add(lblWarning);
-
-            pnlContent.Controls.Add(new Label { Dock = DockStyle.Fill,
-                Text = "Chào mừng đến với hệ thống quản lý kho Á Châu",
-                Font = new Font("Segoe UI", 18), TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = Color.Gray });
-            lblWarning.BringToFront();
-
-            Controls.Add(pnlContent);
-            Controls.Add(pnlSide);
-
-            lblWarning.Cursor = Cursors.Hand;
-
-            lblWarning.Click += (s,e) =>
-            {
-                Open(new frmCanhBao());
-            };
-            Load += (s,e) => CheckCanhBao();
+            AddMenus();
         }
 
-        void AddMenu(string text, int top, Action onClick)
+        private void AddMenus()
         {
-            var btn = new Button {
-                Text = text, Top = top, Left = 10, Width = 200, Height = 40,
-                FlatStyle = FlatStyle.Flat, ForeColor = Color.White,
-                BackColor = Color.FromArgb(44, 62, 80),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 10), Cursor = Cursors.Hand
-            };
+            int y = 130;
+
+            AddMenu("  Hàng hóa", y, BtnHangHoa_Click); y += 50;
+            AddMenu("  Phiếu nhập", y, BtnPhieuNhap_Click); y += 50;
+            AddMenu("  Phiếu xuất", y, BtnPhieuXuat_Click); y += 50;
+            AddMenu("  Tồn kho", y, BtnTonKho_Click); y += 50;
+            AddMenu("  Cảnh báo tồn thấp", y, BtnCanhBao_Click); y += 50;
+            AddMenu("  Báo cáo N-X-T", y, BtnBaoCao_Click); y += 50;
+
+            if (QLKhoAChau.Helpers.PhanQuyen.IsAdmin)
+            {
+                AddMenu("  Quản lý người dùng", y, BtnNguoiDung_Click);
+                y += 50;
+            }
+
+            AddMenu("  Đăng xuất", y, BtnDangXuat_Click);
+        }
+
+        void AddMenu(string text, int top, EventHandler click)
+        {
+            var btn = new Button();
+
+            btn.Text = text;
+            btn.Top = top;
+            btn.Left = 10;
+            btn.Width = 200;
+            btn.Height = 40;
+
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.ForeColor = Color.White;
+
+            btn.BackColor = Color.FromArgb(44, 62, 80);
+
+            btn.TextAlign = ContentAlignment.MiddleLeft;
+            btn.Font = new Font("Segoe UI", 10);
+
+            btn.Cursor = Cursors.Hand;
+
             btn.FlatAppearance.BorderSize = 0;
-            btn.MouseEnter += (s,e) => btn.BackColor = Color.FromArgb(52, 73, 94);
-            btn.MouseLeave += (s,e) => btn.BackColor = Color.FromArgb(44, 62, 80);
-            btn.Click += (s,e) => onClick();
+
+            btn.MouseEnter += Menu_MouseEnter;
+            btn.MouseLeave += Menu_MouseLeave;
+
+            btn.Click += click;
+
             pnlSide.Controls.Add(btn);
+        }
+
+        private void Menu_MouseEnter(object sender, EventArgs e)
+        {
+            ((Button)sender).BackColor = Color.FromArgb(52, 73, 94);
+        }
+
+        private void Menu_MouseLeave(object sender, EventArgs e)
+        {
+            ((Button)sender).BackColor = Color.FromArgb(44, 62, 80);
+        }
+
+        private void BtnHangHoa_Click(object sender, EventArgs e)
+        {
+            Open(new frmHangHoa());
+        }
+
+        private void BtnPhieuNhap_Click(object sender, EventArgs e)
+        {
+            Open(new frmPhieuNhap());
+        }
+
+        private void BtnPhieuXuat_Click(object sender, EventArgs e)
+        {
+            Open(new frmPhieuXuat());
+        }
+
+        private void BtnTonKho_Click(object sender, EventArgs e)
+        {
+            Open(new frmTonKho());
+        }
+
+        private void BtnCanhBao_Click(object sender, EventArgs e)
+        {
+            Open(new frmCanhBao());
+        }
+
+        private void BtnBaoCao_Click(object sender, EventArgs e)
+        {
+            Open(new frmBaoCao());
+        }
+
+        private void BtnNguoiDung_Click(object sender, EventArgs e)
+        {
+            Open(new frmNguoiDung());
+        }
+
+        private void BtnDangXuat_Click(object sender, EventArgs e)
+        {
+            Application.Restart();
+        }
+
+        private void lblWarning_Click(object sender, EventArgs e)
+        {
+            Open(new frmCanhBao());
+        }
+
+        private void frmMain_Load(object sender, EventArgs e)
+        {
+            CheckCanhBao();
         }
 
         void Open(Form f)
         {
             pnlContent.Controls.Clear();
+
             pnlContent.Controls.Add(lblWarning);
 
-            f.TopLevel = false; f.FormBorderStyle = FormBorderStyle.None;
+            f.TopLevel = false;
+            f.FormBorderStyle = FormBorderStyle.None;
             f.Dock = DockStyle.Fill;
+
             pnlContent.Controls.Add(f);
+
             lblWarning.BringToFront();
+
             f.Show();
         }
 
@@ -111,12 +155,22 @@ namespace QLKhoAChau.Forms
             try
             {
                 var dt = HangHoaDAL.GetCanhBao();
+
                 if (dt.Rows.Count > 0)
-                    lblWarning.Text = $"⚠️  Có {dt.Rows.Count} mặt hàng đang dưới ngưỡng tồn tối thiểu - cần nhập thêm!";
+                {
+                    lblWarning.Text =
+                        $"⚠️ Có {dt.Rows.Count} mặt hàng đang dưới ngưỡng tồn tối thiểu!";
+                }
                 else
-                    lblWarning.Text = "✓ Tất cả hàng hóa đang ở mức tồn an toàn";
+                {
+                    lblWarning.Text =
+                        "✓ Tất cả hàng hóa đang ở mức tồn an toàn";
+                }
             }
-            catch { }
+            catch
+            {
+
+            }
         }
     }
 }

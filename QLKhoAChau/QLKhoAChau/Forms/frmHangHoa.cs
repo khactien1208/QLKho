@@ -171,66 +171,68 @@ namespace QLKhoAChau.Forms
                 ? HangHoaDAL.GetAll()
                 : HangHoaDAL.Search(kw);
 
-            // Ẩn mã hàng hóa
+            // Ẩn cột kỹ thuật
             if (grid.Columns.Contains("MaHH"))
                 grid.Columns["MaHH"].Visible = false;
+            if (grid.Columns.Contains("TrangThaiLo"))
+                grid.Columns["TrangThaiLo"].Visible = false;
 
             // Đổi tên cột hiển thị
-            if (grid.Columns.Contains("NgaySanXuat"))
-                grid.Columns["NgaySanXuat"].HeaderText = "Ngày sản xuất";
-
-            if (grid.Columns.Contains("HanSuDung"))
-                grid.Columns["HanSuDung"].HeaderText = "Hạn sử dụng";
-
-            if (grid.Columns.Contains("TenNCC"))
-                grid.Columns["TenNCC"].HeaderText = "Nhà cung cấp";
+            if (grid.Columns.Contains("MaSP"))        grid.Columns["MaSP"].HeaderText        = "Mã SP";
+            if (grid.Columns.Contains("TenHH"))       grid.Columns["TenHH"].HeaderText       = "Tên hàng hóa";
+            if (grid.Columns.Contains("TenDM"))       grid.Columns["TenDM"].HeaderText       = "Danh mục";
+            if (grid.Columns.Contains("DonViTinh"))   grid.Columns["DonViTinh"].HeaderText   = "ĐVT";
+            if (grid.Columns.Contains("GiaNhap"))     grid.Columns["GiaNhap"].HeaderText     = "Giá nhập";
+            if (grid.Columns.Contains("GiaBan"))      grid.Columns["GiaBan"].HeaderText      = "Giá bán";
+            if (grid.Columns.Contains("TonKho"))      grid.Columns["TonKho"].HeaderText      = "Tồn kho";
+            if (grid.Columns.Contains("TonToiThieu")) grid.Columns["TonToiThieu"].HeaderText = "Tồn tối thiểu";
+            if (grid.Columns.Contains("NgaySanXuat")) grid.Columns["NgaySanXuat"].HeaderText = "Ngày SX";
+            if (grid.Columns.Contains("HanSuDung"))   grid.Columns["HanSuDung"].HeaderText   = "Hạn SD";
+            if (grid.Columns.Contains("NgayNhapLo"))  grid.Columns["NgayNhapLo"].HeaderText  = "Ngày nhập lô";
+            if (grid.Columns.Contains("TenNCC"))      grid.Columns["TenNCC"].HeaderText      = "Nhà cung cấp";
 
             // Format ngày
             if (grid.Columns.Contains("NgaySanXuat"))
                 grid.Columns["NgaySanXuat"].DefaultCellStyle.Format = "dd/MM/yyyy";
-
             if (grid.Columns.Contains("HanSuDung"))
                 grid.Columns["HanSuDung"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            if (grid.Columns.Contains("NgayNhapLo"))
+                grid.Columns["NgayNhapLo"].DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
 
-            // ===== CẢNH BÁO HẾT HẠN =====
-
+            // ===== TÔ MÀU THEO HẠN SỬ DỤNG =====
             int soLuongHetHan = 0;
-
             foreach (DataGridViewRow row in grid.Rows)
             {
-                if (row.Cells["HanSuDung"].Value != DBNull.Value)
+                if (row.Cells["HanSuDung"].Value == null ||
+                    row.Cells["HanSuDung"].Value == DBNull.Value) continue;
+
+                DateTime hsd = Convert.ToDateTime(row.Cells["HanSuDung"].Value);
+
+                if (hsd < DateTime.Today)
                 {
-                    DateTime hsd =
-                        Convert.ToDateTime(row.Cells["HanSuDung"].Value);
-
-                    // Hết hạn
-                    if (hsd < DateTime.Now)
-                    {
-                        soLuongHetHan++;
-
-                        row.DefaultCellStyle.BackColor = Color.Red;
-                        row.DefaultCellStyle.ForeColor = Color.White;
-                    }
-
-                    // Sắp hết hạn (7 ngày)
-                    else if ((hsd - DateTime.Now).Days <= 7)
-                    {
-                        row.DefaultCellStyle.BackColor = Color.Yellow;
-                    }
+                    // Hết hạn: nền đỏ, chữ trắng
+                    soLuongHetHan++;
+                    row.DefaultCellStyle.BackColor = Color.Red;
+                    row.DefaultCellStyle.ForeColor = Color.White;
+                    row.DefaultCellStyle.SelectionBackColor = Color.DarkRed;
+                }
+                else if ((hsd - DateTime.Today).TotalDays <= 7)
+                {
+                    // Sắp hết hạn (≤7 ngày): nền vàng, chữ đen
+                    row.DefaultCellStyle.BackColor = Color.Yellow;
+                    row.DefaultCellStyle.ForeColor = Color.Black;
+                    row.DefaultCellStyle.SelectionBackColor = Color.Goldenrod;
                 }
             }
-            bool daCanhBaoHetHan = false;
-            // Hiện thông báo
-            if (soLuongHetHan > 0 && !daCanhBaoHetHan)
-            {
-                daCanhBaoHetHan = true;
 
+            // Hiện cảnh báo 1 lần
+            if (soLuongHetHan > 0)
+            {
                 MessageBox.Show(
-                    $"Có {soLuongHetHan} hàng hóa đã hết hạn sử dụng!",
-                    "Cảnh báo",
+                    $"Có {soLuongHetHan} lô hàng đã hết hạn sử dụng!",
+                    "Cảnh báo hết hạn",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                );
+                    MessageBoxIcon.Warning);
             }
         }
         void Grid_SelectionChanged(object sender, EventArgs e)
@@ -286,7 +288,6 @@ namespace QLKhoAChau.Forms
                 HangHoaDAL.Update(selectedId.Value, txtMaSP.Text, txtTen.Text, dm, ncc, txtDVT.Text, gn, gb, tt, ngaySX, hanSD);
                 MessageBox.Show("Cập nhật thành công!");
                 LoadGrid("");
-                ((frmMain)Application.OpenForms["frmMain"])?.CheckCanhBao();
             }
             catch (Exception ex)
             {
@@ -299,7 +300,6 @@ namespace QLKhoAChau.Forms
             if (MessageBox.Show("Xóa hàng này?", "Xác nhận", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
             HangHoaDAL.Delete(selectedId.Value);
             LoadGrid(""); ClearForm();
-            ((frmMain)Application.OpenForms["frmMain"])?.CheckCanhBao();
 
         }
 

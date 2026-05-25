@@ -16,7 +16,8 @@ namespace QLKhoAChau.DAL
 
         public static DataTable GetChiTiet(int maPN) =>
             DBHelper.ExecuteQuery(@"
-                SELECT h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien
+                SELECT h.MaHH, h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien,
+                       h.HanSuDung, h.NgaySanXuat, h.NgayNhapLo
                 FROM ChiTietNhap ct JOIN HangHoa h ON h.MaHH=ct.MaHH
                 WHERE ct.MaPN=@id",
                 new SqlParameter("@id", maPN));
@@ -27,6 +28,8 @@ namespace QLKhoAChau.DAL
         public static int Insert(string soPhieu, int maNCC, int maND, string ghiChu,
             DataTable chiTiet)
         {
+            // chiTiet cần có cột: MaSP, TenHH, MaDM, MaNCC, DonViTinh, GiaNhap, GiaBan,
+            //                     TonToiThieu, NgaySanXuat, HanSuDung, SoLuong, DonGia
             using (var conn = DBHelper.GetConnection())
             {
                 conn.Open();
@@ -43,13 +46,37 @@ namespace QLKhoAChau.DAL
                         cmd.Parameters.AddWithValue("@g", (object)ghiChu ?? System.DBNull.Value);
                         int maPN = (int)cmd.ExecuteScalar();
 
+                        System.DateTime ngayNhapLo = System.DateTime.Now;
+
                         foreach (DataRow r in chiTiet.Rows)
                         {
+                            // 1. Tạo dòng HangHoa mới — lô độc lập
+                            var cmdHH = new SqlCommand(@"
+                                INSERT INTO HangHoa(MaSP,TenHH,MaDM,MaNCC,DonViTinh,GiaNhap,GiaBan,
+                                                    TonToiThieu,NgaySanXuat,HanSuDung,TonKho,NgayNhapLo,TrangThaiLo)
+                                OUTPUT INSERTED.MaHH
+                                VALUES(@s,@t,@d,@n,@v,@gn,@gb,@tt,@nx,@hs,@sl,@nl,N'BinhThuong')",
+                                conn, tran);
+                            cmdHH.Parameters.AddWithValue("@s",  r["MaSP"]);
+                            cmdHH.Parameters.AddWithValue("@t",  r["TenHH"]);
+                            cmdHH.Parameters.AddWithValue("@d",  r["MaDM"]);
+                            cmdHH.Parameters.AddWithValue("@n",  r["MaNCC"]);
+                            cmdHH.Parameters.AddWithValue("@v",  r["DonViTinh"]);
+                            cmdHH.Parameters.AddWithValue("@gn", r["GiaNhap"]);
+                            cmdHH.Parameters.AddWithValue("@gb", r["GiaBan"]);
+                            cmdHH.Parameters.AddWithValue("@tt", r["TonToiThieu"]);
+                            cmdHH.Parameters.AddWithValue("@nx", r["NgaySanXuat"]);
+                            cmdHH.Parameters.AddWithValue("@hs", r["HanSuDung"]);
+                            cmdHH.Parameters.AddWithValue("@sl", r["SoLuong"]);
+                            cmdHH.Parameters.AddWithValue("@nl", ngayNhapLo);
+                            int maHHMoi = (int)cmdHH.ExecuteScalar();
+
+                            // 2. Ghi ChiTietNhap với MaHH lô mới
                             var c = new SqlCommand(
                                 "INSERT INTO ChiTietNhap(MaPN,MaHH,SoLuong,DonGia) VALUES(@p,@h,@s,@d)",
                                 conn, tran);
                             c.Parameters.AddWithValue("@p", maPN);
-                            c.Parameters.AddWithValue("@h", r["MaHH"]);
+                            c.Parameters.AddWithValue("@h", maHHMoi);
                             c.Parameters.AddWithValue("@s", r["SoLuong"]);
                             c.Parameters.AddWithValue("@d", r["DonGia"]);
                             c.ExecuteNonQuery();

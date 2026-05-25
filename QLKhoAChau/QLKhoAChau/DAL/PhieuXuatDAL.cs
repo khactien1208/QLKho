@@ -8,7 +8,7 @@ namespace QLKhoAChau.DAL
         public static DataTable GetAll() =>
             DBHelper.ExecuteQuery(@"
                 SELECT p.MaPX, p.SoPhieu, p.NgayXuat, kh.TenKH, nd.HoTen AS NguoiXuat,
-                       p.TongTien, p.GhiChu
+                       p.TongTien, p.GhiChu, p.LoaiPhieu
                 FROM PhieuXuat p
                 JOIN KhachHang kh ON kh.MaKH=p.MaKH
                 JOIN NguoiDung nd ON nd.MaND=p.MaND
@@ -16,7 +16,8 @@ namespace QLKhoAChau.DAL
 
         public static DataTable GetChiTiet(int maPX) =>
             DBHelper.ExecuteQuery(@"
-                SELECT h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien
+                SELECT h.MaHH, h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien,
+                       h.HanSuDung
                 FROM ChiTietXuat ct JOIN HangHoa h ON h.MaHH=ct.MaHH
                 WHERE ct.MaPX=@id",
                 new SqlParameter("@id", maPX));
@@ -24,8 +25,22 @@ namespace QLKhoAChau.DAL
         public static DataTable GetKH() =>
             DBHelper.ExecuteQuery("SELECT MaKH, TenKH FROM KhachHang ORDER BY TenKH");
 
+        // Thêm khách hàng mới — trả về MaKH vừa tạo
+        public static int InsertKH(string tenKH, string diaChi, string dienThoai, string email)
+        {
+            var result = DBHelper.ExecuteScalar(@"
+                INSERT INTO KhachHang(TenKH, DiaChi, DienThoai, Email)
+                OUTPUT INSERTED.MaKH
+                VALUES(@t, @d, @dt, @e)",
+                new SqlParameter("@t",  tenKH),
+                new SqlParameter("@d",  string.IsNullOrWhiteSpace(diaChi)     ? (object)DBNull.Value : diaChi),
+                new SqlParameter("@dt", string.IsNullOrWhiteSpace(dienThoai)  ? (object)DBNull.Value : dienThoai),
+                new SqlParameter("@e",  string.IsNullOrWhiteSpace(email)      ? (object)DBNull.Value : email));
+            return (int)result;
+        }
+
         public static int Insert(string soPhieu, int maKH, int maND, string ghiChu,
-            DataTable chiTiet)
+            DataTable chiTiet, string loaiPhieu = "XuatBan")
         {
             using (var conn = DBHelper.GetConnection())
             {
@@ -35,12 +50,13 @@ namespace QLKhoAChau.DAL
                     try
                     {
                         var cmd = new SqlCommand(
-                            "INSERT INTO PhieuXuat(SoPhieu,MaKH,MaND,GhiChu) OUTPUT INSERTED.MaPX VALUES(@s,@k,@u,@g)",
+                            "INSERT INTO PhieuXuat(SoPhieu,MaKH,MaND,GhiChu,LoaiPhieu) OUTPUT INSERTED.MaPX VALUES(@s,@k,@u,@g,@lp)",
                             conn, tran);
-                        cmd.Parameters.AddWithValue("@s", soPhieu);
-                        cmd.Parameters.AddWithValue("@k", maKH);
-                        cmd.Parameters.AddWithValue("@u", maND);
-                        cmd.Parameters.AddWithValue("@g", (object)ghiChu ?? System.DBNull.Value);
+                        cmd.Parameters.AddWithValue("@s",  soPhieu);
+                        cmd.Parameters.AddWithValue("@k",  maKH);
+                        cmd.Parameters.AddWithValue("@u",  maND);
+                        cmd.Parameters.AddWithValue("@g",  (object)ghiChu ?? System.DBNull.Value);
+                        cmd.Parameters.AddWithValue("@lp", loaiPhieu);
                         int maPX = (int)cmd.ExecuteScalar();
 
                         foreach (DataRow r in chiTiet.Rows)
@@ -66,6 +82,13 @@ namespace QLKhoAChau.DAL
         {
             var o = DBHelper.ExecuteScalar("SELECT COUNT(*)+1 FROM PhieuXuat");
             return "PX" + ((int)o).ToString("D4");
+        }
+
+        // Tạo số phiếu riêng cho phiếu xuất hủy
+        public static string SinhSoPhieuHuy()
+        {
+            var o = DBHelper.ExecuteScalar("SELECT COUNT(*)+1 FROM PhieuXuat WHERE LoaiPhieu=N'XuatHuy'");
+            return "PH" + ((int)o).ToString("D4");
         }
     }
 }

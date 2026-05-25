@@ -11,7 +11,13 @@ namespace QLKhoAChau.Forms
     {
         DataGridView gridPhieu, gridChiTiet, gridTemp;
         TextBox txtSoPhieu, txtGhiChu, txtSL, txtDonGia;
-        ComboBox cboNCC, cboHH;
+        TextBox txtGiaBanLo, txtTonToiThieu;           // THÊM MỚI: thông tin lô
+        ComboBox cboNCC, cboHH;                        // cboHH = combo chọn SP cũ
+        ComboBox cboDMMoi, cboNCCMoi;                  // THÊM MỚI: cho SP mới
+        TextBox txtMaSPMoi, txtTenMoi, txtDVTMoi;      // THÊM MỚI: nhập SP mới
+        DateTimePicker dtpNSX, dtpHSD;                 // THÊM MỚI: hạn sử dụng
+        RadioButton rdoSPCu, rdoSPMoi;                 // THÊM MỚI: chọn chế độ
+        Panel pnlSpCu, pnlSpMoi;                       // THÊM MỚI: 2 panel ẩn/hiện
         Button btnNew, btnAddItem, btnSave, btnNewHH, btnNewDM, btnNewNCC;
         DataTable dtTemp;
 
@@ -78,34 +84,88 @@ namespace QLKhoAChau.Forms
             }); y += 25;
 
             gb.Controls.Add(new Label { Text = "Hàng hóa:", Location = new Point(10, y + 3), AutoSize = true });
-            // Thu hẹp combo để chừa chỗ cho nút "+ Mới"
-            cboHH = new ComboBox { Location = new Point(100, y), Width = 260, DropDownStyle = ComboBoxStyle.DropDownList };
-            cboHH.SelectedIndexChanged += (s, e) => {
-                if (cboHH.SelectedItem is DataRowView drv) txtDonGia.Text = drv["GiaNhap"].ToString();
-            };
-            gb.Controls.Add(cboHH);
 
-            // === NÚT THÊM HÀNG HÓA MỚI ===
+            // ===== RADIO CHỌN CHẾ ĐỘ SP =====
+            rdoSPCu = new RadioButton { Text = "SP có sẵn", Location = new Point(100, y), AutoSize = true, Checked = true, Font = new Font("Segoe UI", 9) };
+            rdoSPMoi = new RadioButton { Text = "SP mới", Location = new Point(210, y), AutoSize = true, Font = new Font("Segoe UI", 9) };
+            rdoSPCu.CheckedChanged += RdoSP_CheckedChanged;
+            rdoSPMoi.CheckedChanged += RdoSP_CheckedChanged;
+            gb.Controls.AddRange(new Control[] { rdoSPCu, rdoSPMoi });
+            y += 28;
+
+            // ===== PANEL SP CŨ =====
+            pnlSpCu = new Panel { Location = new Point(10, y), Width = 440, Height = 30, Visible = true };
+            cboHH = new ComboBox { Location = new Point(0, 2), Width = 360, DropDownStyle = ComboBoxStyle.DropDownList };
+            cboHH.SelectedIndexChanged += (s, e) => {
+                if (cboHH.SelectedItem is DataRowView drv)
+                {
+                    var tbl = drv.Row.Table;
+                    if (tbl.Columns.Contains("GiaNhap") && drv["GiaNhap"] != DBNull.Value)
+                    {
+                        txtDonGia.Text = drv["GiaNhap"].ToString();
+                    }
+                    else if (tbl.Columns.Contains("DonGia") && drv["DonGia"] != DBNull.Value)
+                    {
+                        txtDonGia.Text = drv["DonGia"].ToString();
+                    }
+                    else
+                    {
+                        txtDonGia.Text = "0";
+                    }
+                }
+            };
             btnNewHH = new Button
             {
-                Text = "+ Mới",
-                Location = new Point(365, y - 1),
-                Size = new Size(65, 26),
-                BackColor = Color.FromArgb(155, 89, 182),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 8, FontStyle.Bold)
+                Text = "+ Mới", Location = new Point(368, 1), Size = new Size(65, 26),
+                BackColor = Color.FromArgb(155, 89, 182), ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 8, FontStyle.Bold)
             };
             btnNewHH.Click += BtnNewHH_Click;
-            gb.Controls.Add(btnNewHH);
+            pnlSpCu.Controls.AddRange(new Control[] { cboHH, btnNewHH });
+            gb.Controls.Add(pnlSpCu);
+
+            // ===== PANEL SP MỚI =====
+            pnlSpMoi = new Panel { Location = new Point(10, y), Width = 440, Height = 70, Visible = false };
+            pnlSpMoi.Controls.Add(new Label { Text = "Mã SP (*):", Location = new Point(0, 5), AutoSize = true });
+            txtMaSPMoi = new TextBox { Location = new Point(65, 2), Width = 100 };
+            pnlSpMoi.Controls.Add(txtMaSPMoi);
+            pnlSpMoi.Controls.Add(new Label { Text = "Tên HH (*):", Location = new Point(175, 5), AutoSize = true });
+            txtTenMoi = new TextBox { Location = new Point(240, 2), Width = 200 };
+            pnlSpMoi.Controls.Add(txtTenMoi);
+            pnlSpMoi.Controls.Add(new Label { Text = "Danh mục:", Location = new Point(0, 38), AutoSize = true });
+            cboDMMoi = new ComboBox { Location = new Point(65, 35), Width = 160, DropDownStyle = ComboBoxStyle.DropDownList };
+            pnlSpMoi.Controls.Add(cboDMMoi);
+            pnlSpMoi.Controls.Add(new Label { Text = "ĐVT:", Location = new Point(238, 38), AutoSize = true });
+            txtDVTMoi = new TextBox { Location = new Point(265, 35), Width = 80, Text = "Thùng" };
+            pnlSpMoi.Controls.Add(txtDVTMoi);
+            pnlSpMoi.Controls.Add(new Label { Text = "NCC:", Location = new Point(355, 38), AutoSize = true });
+            cboNCCMoi = new ComboBox { Location = new Point(380, 35), Width = 55, DropDownStyle = ComboBoxStyle.DropDownList };
+            pnlSpMoi.Controls.Add(cboNCCMoi);
+            gb.Controls.Add(pnlSpMoi);
+            y += 78;
+
+            // ===== CÁC FIELD THÔNG TIN LÔ (dùng chung 2 chế độ) =====
+            gb.Controls.Add(new Label { Text = "Số lượng:", Location = new Point(10, y + 3), AutoSize = true });
+            txtSL = new TextBox { Location = new Point(100, y), Width = 80, Text = "1" };
+            gb.Controls.Add(txtSL);
+            gb.Controls.Add(new Label { Text = "Đơn giá nhập:", Location = new Point(195, y + 3), AutoSize = true });
+            txtDonGia = new TextBox { Location = new Point(295, y), Width = 90, Text = "0" };
+            gb.Controls.Add(txtDonGia);
+            gb.Controls.Add(new Label { Text = "Giá bán:", Location = new Point(395, y + 3), AutoSize = true });
+            txtGiaBanLo = new TextBox { Location = new Point(445, y), Width = 90, Text = "0" };
+            gb.Controls.Add(txtGiaBanLo);
             y += 32;
 
-            gb.Controls.Add(new Label { Text = "Số lượng:", Location = new Point(10, y + 3), AutoSize = true });
-            txtSL = new TextBox { Location = new Point(100, y), Width = 100, Text = "1" };
-            gb.Controls.Add(txtSL);
-            gb.Controls.Add(new Label { Text = "Đơn giá:", Location = new Point(220, y + 3), AutoSize = true });
-            txtDonGia = new TextBox { Location = new Point(290, y), Width = 140, Text = "0" };
-            gb.Controls.Add(txtDonGia); y += 40;
+            gb.Controls.Add(new Label { Text = "Ngày SX:", Location = new Point(10, y + 3), AutoSize = true });
+            dtpNSX = new DateTimePicker { Location = new Point(100, y), Width = 130, Format = DateTimePickerFormat.Short, Value = DateTime.Today };
+            gb.Controls.Add(dtpNSX);
+            gb.Controls.Add(new Label { Text = "Hạn SD (*):", Location = new Point(245, y + 3), AutoSize = true });
+            dtpHSD = new DateTimePicker { Location = new Point(320, y), Width = 130, Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddYears(1) };
+            gb.Controls.Add(dtpHSD);
+            gb.Controls.Add(new Label { Text = "Tồn tối thiểu:", Location = new Point(462, y + 3), AutoSize = true });
+            txtTonToiThieu = new TextBox { Location = new Point(550, y), Width = 60, Text = "10" };
+            gb.Controls.Add(txtTonToiThieu);
+            y += 40;
 
             btnAddItem = new Button
             {
@@ -147,7 +207,7 @@ namespace QLKhoAChau.Forms
             splitRight.Panel2.Controls.Add(gridChiTiet);
             splitRight.Panel2.Controls.Add(lbl2);
 
-            Load += (s, e) => { LoadCombo(); LoadGrid(); NewPhieu(); };
+            Load += (s, e) => { LoadCombo(); LoadGrid(); NewPhieu(); RdoSP_CheckedChanged(null, null); };
         }
 
         DataGridView NewGrid()
@@ -183,8 +243,18 @@ namespace QLKhoAChau.Forms
         {
             cboNCC.DataSource = PhieuNhapDAL.GetNCC();
             cboNCC.DisplayMember = "TenNCC"; cboNCC.ValueMember = "MaNCC";
-            cboHH.DataSource = HangHoaDAL.GetForCombo();
-            cboHH.DisplayMember = "TenHienThi"; cboHH.ValueMember = "MaHH";
+
+            // Combo SP có sẵn: hiển thị "MaSP - TenHH"
+            cboHH.DataSource = HangHoaDAL.GetDanhSachSP();
+            cboHH.DisplayMember = "TenHienThi"; cboHH.ValueMember = "MaSP";
+
+            // Combo danh mục cho SP mới
+            cboDMMoi.DataSource = DanhMucDAL.GetAll();
+            cboDMMoi.DisplayMember = "TenDM"; cboDMMoi.ValueMember = "MaDM";
+
+            // Combo NCC cho SP mới (dùng chung nguồn)
+            cboNCCMoi.DataSource = NhaCungCapDAL.GetAll();
+            cboNCCMoi.DisplayMember = "TenNCC"; cboNCCMoi.ValueMember = "MaNCC";
         }
 
         void LoadGrid()
@@ -197,29 +267,107 @@ namespace QLKhoAChau.Forms
         {
             txtSoPhieu.Text = PhieuNhapDAL.SinhSoPhieu();
             txtGhiChu.Clear();
+
+            // dtTemp cần đủ cột để PhieuNhapDAL.Insert() tạo lô HangHoa mới
             dtTemp = new DataTable();
-            dtTemp.Columns.Add("MaHH", typeof(int));
-            dtTemp.Columns.Add("TenHH"); dtTemp.Columns.Add("SoLuong", typeof(int));
-            dtTemp.Columns.Add("DonGia", typeof(decimal));
-            dtTemp.Columns.Add("ThanhTien", typeof(decimal));
+            dtTemp.Columns.Add("MaSP",       typeof(string));
+            dtTemp.Columns.Add("TenHH",       typeof(string));
+            dtTemp.Columns.Add("MaDM",        typeof(int));
+            dtTemp.Columns.Add("MaNCC",       typeof(int));
+            dtTemp.Columns.Add("DonViTinh",   typeof(string));
+            dtTemp.Columns.Add("GiaNhap",     typeof(decimal));
+            dtTemp.Columns.Add("GiaBan",      typeof(decimal));
+            dtTemp.Columns.Add("TonToiThieu", typeof(int));
+            dtTemp.Columns.Add("NgaySanXuat", typeof(DateTime));
+            dtTemp.Columns.Add("HanSuDung",   typeof(DateTime));
+            dtTemp.Columns.Add("SoLuong",     typeof(int));
+            dtTemp.Columns.Add("DonGia",      typeof(decimal));
+            dtTemp.Columns.Add("ThanhTien",   typeof(decimal));
+
             gridTemp.DataSource = dtTemp;
-            if (gridTemp.Columns.Contains("MaHH")) gridTemp.Columns["MaHH"].Visible = false;
+
+            // Ẩn cột kỹ thuật
+            string[] hide = { "MaDM", "MaNCC", "GiaNhap", "GiaBan", "TonToiThieu" };
+            foreach (string col in hide)
+                if (gridTemp.Columns.Contains(col)) gridTemp.Columns[col].Visible = false;
+
+            if (gridTemp.Columns.Contains("NgaySanXuat"))
+                gridTemp.Columns["NgaySanXuat"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            if (gridTemp.Columns.Contains("HanSuDung"))
+                gridTemp.Columns["HanSuDung"].DefaultCellStyle.Format = "dd/MM/yyyy";
+        }
+
+        // Ẩn/hiện panel theo chế độ chọn SP
+        void RdoSP_CheckedChanged(object sender, EventArgs e)
+        {
+            if (pnlSpCu == null || pnlSpMoi == null) return;
+            pnlSpCu.Visible  = rdoSPCu.Checked;
+            pnlSpMoi.Visible = rdoSPMoi.Checked;
         }
 
         void BtnAddItem_Click(object sender, EventArgs e)
         {
-            if (cboHH.SelectedValue == null) return;
-            if (!int.TryParse(txtSL.Text, out int sl) || sl <= 0) { MessageBox.Show("SL không hợp lệ"); return; }
-            if (!decimal.TryParse(txtDonGia.Text, out decimal dg) || dg < 0) { MessageBox.Show("Đơn giá không hợp lệ"); return; }
-            var drv = (DataRowView)cboHH.SelectedItem;
-            dtTemp.Rows.Add((int)cboHH.SelectedValue, drv["TenHienThi"], sl, dg, sl * dg);
+            if (!int.TryParse(txtSL.Text, out int sl) || sl <= 0)
+            { MessageBox.Show("Số lượng không hợp lệ!"); return; }
+            if (!decimal.TryParse(txtDonGia.Text, out decimal dg) || dg < 0)
+            { MessageBox.Show("Đơn giá không hợp lệ!"); return; }
+            if (!decimal.TryParse(txtGiaBanLo.Text, out decimal gb)) gb = 0;
+            if (!int.TryParse(txtTonToiThieu.Text, out int ton)) ton = 0;
+            if (dtpHSD.Value < dtpNSX.Value)
+            { MessageBox.Show("Hạn SD phải sau Ngày SX!"); return; }
+
+            string maSP, tenHH, dvt;
+            int maDM, maNCC;
+
+            if (rdoSPCu.Checked)
+            {
+                // Lấy thông tin từ SP có sẵn
+                if (cboHH.SelectedItem == null) { MessageBox.Show("Chọn sản phẩm!"); return; }
+                var drv = (DataRowView)cboHH.SelectedItem;
+                maSP  = drv["MaSP"].ToString();
+                // TenHienThi = "MaSP - TenHH" → tách TenHH
+                string tenHienThi = drv["TenHienThi"].ToString();
+                int idx = tenHienThi.IndexOf(" - ");
+                tenHH = idx >= 0 ? tenHienThi.Substring(idx + 3) : tenHienThi;
+                maDM  = drv["MaDM"] == DBNull.Value ? 1 : Convert.ToInt32(drv["MaDM"]);
+                maNCC = drv["MaNCC"] == DBNull.Value ? (int)cboNCC.SelectedValue
+                                                      : Convert.ToInt32(drv["MaNCC"]);
+                dvt   = drv["DonViTinh"].ToString();
+            }
+            else
+            {
+                // SP mới — kiểm tra bắt buộc
+                if (string.IsNullOrWhiteSpace(txtMaSPMoi.Text)) { MessageBox.Show("Nhập Mã SP!"); return; }
+                if (string.IsNullOrWhiteSpace(txtTenMoi.Text))  { MessageBox.Show("Nhập Tên hàng hóa!"); return; }
+                if (cboDMMoi.SelectedValue == null)              { MessageBox.Show("Chọn danh mục!"); return; }
+                maSP  = txtMaSPMoi.Text.Trim();
+                tenHH = txtTenMoi.Text.Trim();
+                maDM  = (int)cboDMMoi.SelectedValue;
+                maNCC = cboNCCMoi.SelectedValue != null ? (int)cboNCCMoi.SelectedValue
+                                                        : (int)cboNCC.SelectedValue;
+                dvt   = string.IsNullOrWhiteSpace(txtDVTMoi.Text) ? "Thùng" : txtDVTMoi.Text.Trim();
+            }
+
+            dtTemp.Rows.Add(
+                maSP, tenHH, maDM, maNCC, dvt,
+                dg, gb, ton,
+                dtpNSX.Value, dtpHSD.Value,
+                sl, dg, sl * dg);
+
+            // Reset field cho dòng tiếp theo
+            txtSL.Text          = "1";
+            txtDonGia.Text      = "0";
+            txtGiaBanLo.Text    = "0";
+            txtTonToiThieu.Text = "10";
         }
 
         void BtnSave_Click(object sender, EventArgs e)
         {
             if (dtTemp.Rows.Count == 0) { MessageBox.Show("Phiếu rỗng!"); return; }
+            if (cboNCC.SelectedValue == null) { MessageBox.Show("Chọn nhà cung cấp!"); return; }
             try
             {
+                // PhieuNhapDAL.Insert() mới nhận dtTemp đầy đủ cột lô
                 PhieuNhapDAL.Insert(txtSoPhieu.Text, (int)cboNCC.SelectedValue,
                     Program.CurrentUser.MaND, txtGhiChu.Text, dtTemp);
                 MessageBox.Show("Lưu phiếu nhập thành công!");
@@ -237,32 +385,26 @@ namespace QLKhoAChau.Forms
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK && !string.IsNullOrEmpty(dlg.MaSPMoi))
                 {
-                    // Reload combo
-                    cboHH.DataSource = HangHoaDAL.GetForCombo();
+                    // Reload combo SP cũ với method mới
+                    cboHH.DataSource = HangHoaDAL.GetDanhSachSP();
                     cboHH.DisplayMember = "TenHienThi";
-                    cboHH.ValueMember = "MaHH";
-                    // cập nhật NCC form chính
+                    cboHH.ValueMember = "MaSP";
+
                     cboNCC.DataSource = PhieuNhapDAL.GetNCC();
                     cboNCC.DisplayMember = "TenNCC";
                     cboNCC.ValueMember = "MaNCC";
 
-                    // tự chọn NCC vừa thêm
-                    if (dlg.MaNCCMoi > 0)
-                    {
-                        cboNCC.SelectedValue = dlg.MaNCCMoi;
-                    }
+                    if (dlg.MaNCCMoi > 0) cboNCC.SelectedValue = dlg.MaNCCMoi;
 
-                    // Tự chọn hàng vừa thêm theo MaSP
+                    // Tự chọn SP vừa thêm
                     var dt = (DataTable)cboHH.DataSource;
                     for (int i = 0; i < dt.Rows.Count; i++)
                     {
-                        string ten = dt.Rows[i]["TenHienThi"].ToString();
-                        if (ten.StartsWith(dlg.MaSPMoi + " - "))
-                        {
-                            cboHH.SelectedIndex = i;
-                            break;
-                        }
+                        if (dt.Rows[i]["MaSP"].ToString() == dlg.MaSPMoi)
+                        { cboHH.SelectedIndex = i; break; }
                     }
+                    // Chuyển về chế độ SP cũ
+                    rdoSPCu.Checked = true;
                 }
             }
         }
@@ -497,11 +639,14 @@ namespace QLKhoAChau.Forms
 
             try
             {
+                // Insert signature mới: thêm soLuong=0, ngayNhapLo=now
+                // SoLuong=0 vì lô thực sự sẽ tạo khi lưu phiếu nhập
                 HangHoaDAL.Insert(
                     txtMaSP.Text.Trim(), txtTen.Text.Trim(),
                     (int)cboDM.SelectedValue, (int)cboNCC.SelectedValue,
                     txtDVT.Text.Trim(), gn, gb, tm,
-                    dtpNSX.Value, dtpHSD.Value);
+                    dtpNSX.Value, dtpHSD.Value,
+                    0, DateTime.Now);
                 MaSPMoi = txtMaSP.Text.Trim();
                 DialogResult = DialogResult.OK;
                 Close();
