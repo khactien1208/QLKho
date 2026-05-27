@@ -14,6 +14,34 @@ namespace QLKhoAChau.DAL
                 JOIN NguoiDung nd ON nd.MaND=p.MaND
                 ORDER BY p.NgayNhap DESC");
 
+        // Tìm kiếm theo SoPhieu, TenNCC hoặc NgayNhap
+        public static DataTable Search(string kw) =>
+            DBHelper.ExecuteQuery(@"
+                SELECT p.MaPN, p.SoPhieu, p.NgayNhap, ncc.TenNCC, nd.HoTen AS NguoiNhap,
+                       p.TongTien, p.GhiChu
+                FROM PhieuNhap p
+                JOIN NhaCungCap ncc ON ncc.MaNCC=p.MaNCC
+                JOIN NguoiDung nd ON nd.MaND=p.MaND
+                WHERE p.SoPhieu LIKE @k OR ncc.TenNCC LIKE @k
+                ORDER BY p.NgayNhap DESC",
+                new SqlParameter("@k", "%" + kw + "%"));
+
+        // Lọc kết hợp: từ khóa + khoảng ngày (truyền null để bỏ qua từng điều kiện)
+        public static DataTable Filter(string kw, DateTime? tuNgay, DateTime? denNgay) =>
+            DBHelper.ExecuteQuery(@"
+                SELECT p.MaPN, p.SoPhieu, p.NgayNhap, ncc.TenNCC, nd.HoTen AS NguoiNhap,
+                       p.TongTien, p.GhiChu
+                FROM PhieuNhap p
+                JOIN NhaCungCap ncc ON ncc.MaNCC=p.MaNCC
+                JOIN NguoiDung nd ON nd.MaND=p.MaND
+                WHERE (@k  IS NULL OR p.SoPhieu LIKE @k OR ncc.TenNCC LIKE @k)
+                  AND (@tu IS NULL OR CAST(p.NgayNhap AS DATE) >= @tu)
+                  AND (@den IS NULL OR CAST(p.NgayNhap AS DATE) <= @den)
+                ORDER BY p.NgayNhap DESC",
+                new SqlParameter("@k",   string.IsNullOrWhiteSpace(kw) ? (object)DBNull.Value : "%" + kw + "%"),
+                new SqlParameter("@tu",  tuNgay.HasValue  ? (object)tuNgay.Value.Date  : DBNull.Value),
+                new SqlParameter("@den", denNgay.HasValue ? (object)denNgay.Value.Date : DBNull.Value));
+
         public static DataTable GetChiTiet(int maPN) =>
             DBHelper.ExecuteQuery(@"
                 SELECT h.MaHH, h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien,

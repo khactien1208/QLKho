@@ -14,6 +14,36 @@ namespace QLKhoAChau.DAL
                 JOIN NguoiDung nd ON nd.MaND=p.MaND
                 ORDER BY p.NgayXuat DESC");
 
+        // Tìm kiếm theo SoPhieu, TenKH, LoaiPhieu
+        public static DataTable Search(string kw) =>
+            DBHelper.ExecuteQuery(@"
+                SELECT p.MaPX, p.SoPhieu, p.NgayXuat, kh.TenKH, nd.HoTen AS NguoiXuat,
+                       p.TongTien, p.GhiChu, p.LoaiPhieu
+                FROM PhieuXuat p
+                JOIN KhachHang kh ON kh.MaKH=p.MaKH
+                JOIN NguoiDung nd ON nd.MaND=p.MaND
+                WHERE p.SoPhieu LIKE @k OR kh.TenKH LIKE @k OR p.LoaiPhieu LIKE @k
+                ORDER BY p.NgayXuat DESC",
+                new SqlParameter("@k", "%" + kw + "%"));
+
+        // Lọc kết hợp: từ khóa + khoảng ngày + loại phiếu
+        public static DataTable Filter(string kw, DateTime? tuNgay, DateTime? denNgay, string loaiPhieu) =>
+            DBHelper.ExecuteQuery(@"
+                SELECT p.MaPX, p.SoPhieu, p.NgayXuat, kh.TenKH, nd.HoTen AS NguoiXuat,
+                       p.TongTien, p.GhiChu, p.LoaiPhieu
+                FROM PhieuXuat p
+                JOIN KhachHang kh ON kh.MaKH=p.MaKH
+                JOIN NguoiDung nd ON nd.MaND=p.MaND
+                WHERE (@k   IS NULL OR p.SoPhieu LIKE @k OR kh.TenKH LIKE @k)
+                  AND (@tu  IS NULL OR CAST(p.NgayXuat AS DATE) >= @tu)
+                  AND (@den IS NULL OR CAST(p.NgayXuat AS DATE) <= @den)
+                  AND (@lp  IS NULL OR p.LoaiPhieu = @lp)
+                ORDER BY p.NgayXuat DESC",
+                new SqlParameter("@k",   string.IsNullOrWhiteSpace(kw)        ? (object)DBNull.Value : "%" + kw + "%"),
+                new SqlParameter("@tu",  tuNgay.HasValue  ? (object)tuNgay.Value.Date  : DBNull.Value),
+                new SqlParameter("@den", denNgay.HasValue ? (object)denNgay.Value.Date : DBNull.Value),
+                new SqlParameter("@lp",  string.IsNullOrWhiteSpace(loaiPhieu) ? (object)DBNull.Value : loaiPhieu));
+
         public static DataTable GetChiTiet(int maPX) =>
             DBHelper.ExecuteQuery(@"
                 SELECT h.MaHH, h.MaSP, h.TenHH, ct.SoLuong, ct.DonGia, ct.ThanhTien,

@@ -21,17 +21,82 @@ namespace QLKhoAChau.Forms
         {
             Text = "Phiếu xuất"; BackColor = Color.WhiteSmoke;
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 110, BackColor = Color.White };
             var lblTitle = new Label
             {
                 Text = "PHIẾU XUẤT KHO",
                 Font = new Font("Segoe UI", 16, FontStyle.Bold),
                 AutoSize = true,
                 ForeColor = Color.FromArgb(44, 62, 80),
-                Location = new Point(15, 40)
+                Location = new Point(15, 10)
             };
 
             top.Controls.Add(lblTitle);
+
+            // ===== HÀNG 1: TÌM KIẾM =====
+            var txtSearch = new TextBox
+            {
+                Location = new Point(15, 45), Width = 220,
+                Font = new Font("Segoe UI", 9),
+                PlaceholderText = "Tìm số phiếu, khách hàng..."
+            };
+            var btnSearch = new Button
+            {
+                Text = "🔍 Tìm", Location = new Point(243, 43), Size = new Size(75, 26),
+                BackColor = Color.FromArgb(52, 152, 219), ForeColor = Color.White, FlatStyle = FlatStyle.Flat
+            };
+
+            // ===== HÀNG 2: LỌC NGÀY + LOẠI PHIẾU =====
+            top.Controls.Add(new Label { Text = "Từ ngày:", Location = new Point(15, 80), AutoSize = true, Font = new Font("Segoe UI", 9) });
+            var dtpTu = new DateTimePicker { Location = new Point(70, 76), Width = 110, Format = DateTimePickerFormat.Short, Font = new Font("Segoe UI", 9) };
+            top.Controls.Add(new Label { Text = "Đến:", Location = new Point(188, 80), AutoSize = true, Font = new Font("Segoe UI", 9) });
+            var dtpDen = new DateTimePicker { Location = new Point(215, 76), Width = 110, Format = DateTimePickerFormat.Short, Font = new Font("Segoe UI", 9) };
+
+            dtpTu.Value  = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            dtpDen.Value = DateTime.Today;
+
+            var chkLoc = new CheckBox { Text = "Lọc ngày", Location = new Point(333, 78), AutoSize = true, Font = new Font("Segoe UI", 9) };
+
+            top.Controls.Add(new Label { Text = "Loại:", Location = new Point(420, 80), AutoSize = true, Font = new Font("Segoe UI", 9) });
+            var cboLoai = new ComboBox
+            {
+                Location = new Point(450, 76), Width = 100,
+                DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 9)
+            };
+            cboLoai.Items.AddRange(new object[] { "Tất cả", "XuatBan", "XuatHuy" });
+            cboLoai.SelectedIndex = 0;
+
+            var btnLoc = new Button
+            {
+                Text = "⚙ Lọc", Location = new Point(558, 76), Size = new Size(70, 26),
+                BackColor = Color.FromArgb(155, 89, 182), ForeColor = Color.White, FlatStyle = FlatStyle.Flat
+            };
+            var btnReset = new Button
+            {
+                Text = "✕ Xóa lọc", Location = new Point(635, 76), Size = new Size(85, 26),
+                BackColor = Color.FromArgb(189, 195, 199), FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 9)
+            };
+            var btnExcel = new Button
+            {
+                Text = "📥 Xuất Excel", Location = new Point(728, 76), Size = new Size(110, 26),
+                BackColor = Color.FromArgb(39, 174, 96), ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+
+            btnSearch.Click += (s, e) => LoadGrid(txtSearch.Text, null, null, "");
+            txtSearch.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) LoadGrid(txtSearch.Text, null, null, ""); };
+            btnLoc.Click += (s, e) => LoadGrid(
+                txtSearch.Text,
+                chkLoc.Checked ? (DateTime?)dtpTu.Value  : null,
+                chkLoc.Checked ? (DateTime?)dtpDen.Value : null,
+                cboLoai.SelectedIndex == 0 ? "" : cboLoai.SelectedItem.ToString());
+            btnReset.Click += (s, e) => { txtSearch.Clear(); chkLoc.Checked = false; cboLoai.SelectedIndex = 0; LoadGrid("", null, null, ""); };
+            btnExcel.Click += (s, e) => XuatExcel(gridPhieu, "PhieuXuat");
+
+            top.Controls.AddRange(new Control[] {
+                txtSearch, btnSearch,
+                dtpTu, dtpDen, chkLoc, cboLoai, btnLoc, btnReset, btnExcel
+            });
             
             var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 250 };
             Controls.Add(split);
@@ -138,7 +203,7 @@ namespace QLKhoAChau.Forms
             splitRight.Panel2.Controls.Add(gridChiTiet);
             splitRight.Panel2.Controls.Add(lbl2);
 
-            Load += (s,e) => { LoadCombo(); LoadGrid(); NewPhieu(); };
+            Load += (s,e) => { LoadCombo(); LoadGrid("", null, null, ""); NewPhieu(); };
         }
 
         DataGridView NewGrid() {
@@ -201,10 +266,56 @@ namespace QLKhoAChau.Forms
             cboHH.DataSource = HangHoaDAL.GetLoForXuatCombo();
             cboHH.DisplayMember = "TenHienThi"; cboHH.ValueMember = "MaHH";
         }
-        void LoadGrid()
+        void LoadGrid(string kw = "", DateTime? tuNgay = null, DateTime? denNgay = null, string loaiPhieu = "")
         {
-            gridPhieu.DataSource = PhieuXuatDAL.GetAll();
-            if (gridPhieu.Columns.Contains("MaPX")) gridPhieu.Columns["MaPX"].Visible = false;
+            bool coFilter = !string.IsNullOrWhiteSpace(kw) || tuNgay.HasValue || denNgay.HasValue || !string.IsNullOrWhiteSpace(loaiPhieu);
+            gridPhieu.DataSource = coFilter
+                ? PhieuXuatDAL.Filter(kw, tuNgay, denNgay, loaiPhieu)
+                : PhieuXuatDAL.GetAll();
+            if (gridPhieu.Columns.Contains("MaPX"))     gridPhieu.Columns["MaPX"].Visible = false;
+            if (gridPhieu.Columns.Contains("TongTien"))  gridPhieu.Columns["TongTien"].DefaultCellStyle.Format  = "N0";
+            if (gridPhieu.Columns.Contains("NgayXuat"))  gridPhieu.Columns["NgayXuat"].DefaultCellStyle.Format  = "dd/MM/yyyy HH:mm";
+            // Tô màu dòng XuatHuy
+            foreach (DataGridViewRow row in gridPhieu.Rows)
+                if (row.Cells["LoaiPhieu"]?.Value?.ToString() == "XuatHuy")
+                    row.DefaultCellStyle.ForeColor = Color.FromArgb(192, 57, 43);
+        }
+
+        void XuatExcel(DataGridView dgv, string tenFile)
+        {
+            if (dgv.Rows.Count == 0) { MessageBox.Show("Không có dữ liệu để xuất!"); return; }
+            var dlg = new SaveFileDialog
+            {
+                Filter = "Excel CSV (*.csv)|*.csv",
+                FileName = $"{tenFile}_{DateTime.Today:yyyyMMdd}.csv",
+                Title = "Lưu file Excel"
+            };
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                var headers = new System.Collections.Generic.List<string>();
+                foreach (DataGridViewColumn col in dgv.Columns)
+                    if (col.Visible) headers.Add("\"" + col.HeaderText + "\"");
+                sb.AppendLine(string.Join(",", headers));
+                foreach (DataGridViewRow row in dgv.Rows)
+                {
+                    if (row.IsNewRow) continue;
+                    var cells = new System.Collections.Generic.List<string>();
+                    foreach (DataGridViewColumn col in dgv.Columns)
+                    {
+                        if (!col.Visible) continue;
+                        string val = row.Cells[col.Index].FormattedValue?.ToString() ?? "";
+                        cells.Add("\"" + val.Replace("\"", "\"\"") + "\"");
+                    }
+                    sb.AppendLine(string.Join(",", cells));
+                }
+                System.IO.File.WriteAllText(dlg.FileName, sb.ToString(), new System.Text.UTF8Encoding(true));
+                if (MessageBox.Show("Xuất Excel thành công!\nMở file ngay?", "Thành công",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
+                    System.Diagnostics.Process.Start(dlg.FileName);
+            }
+            catch (Exception ex) { MessageBox.Show("Lỗi xuất Excel: " + ex.Message); }
         }
         void NewPhieu()
         {
@@ -348,23 +459,20 @@ namespace QLKhoAChau.Forms
                 }
             }
         }
-
-        void LuuPhieu(string loaiPhieu)
+        void LuuPhieu(string loaiXuat)
         {
             if (dtTemp.Rows.Count == 0) { MessageBox.Show("Phiếu rỗng!"); return; }
             if (cboKH.SelectedValue == null) { MessageBox.Show("Chọn khách hàng!"); return; }
             try
             {
                 PhieuXuatDAL.Insert(txtSoPhieu.Text, (int)cboKH.SelectedValue,
-                    Program.CurrentUser.MaND, txtGhiChu.Text, dtTemp, loaiPhieu);
-                string msg = loaiPhieu == "XuatHuy"
-                    ? "Lưu phiếu xuất hủy thành công!"
-                    : "Lưu phiếu xuất thành công!";
-                MessageBox.Show(msg);
+                    Program.CurrentUser.MaND, txtGhiChu.Text, dtTemp, loaiXuat);
+                MessageBox.Show($"Lưu phiếu xuất {loaiXuat} thành công!");
                 LoadGrid(); LoadCombo(); NewPhieu();
             }
             catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
         }
+
     }
 
     // ================================================================

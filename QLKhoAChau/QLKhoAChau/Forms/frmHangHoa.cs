@@ -129,6 +129,7 @@ namespace QLKhoAChau.Forms
             grid.DefaultCellStyle.Alignment =
             DataGridViewContentAlignment.MiddleCenter;
             grid.SelectionChanged += Grid_SelectionChanged;
+            grid.CellFormatting += Grid_CellFormatting;
             
             
             var pnlGrid = new Panel
@@ -203,36 +204,49 @@ namespace QLKhoAChau.Forms
             int soLuongHetHan = 0;
             foreach (DataGridViewRow row in grid.Rows)
             {
-                if (row.Cells["HanSuDung"].Value == null ||
-                    row.Cells["HanSuDung"].Value == DBNull.Value) continue;
+                if (row.Cells["HanSuDung"].Value != null && row.Cells["HanSuDung"].Value != DBNull.Value)
+                {
+                    if (Convert.ToDateTime(row.Cells["HanSuDung"].Value) < DateTime.Today)
+                        soLuongHetHan++;
+                }
+            }
 
+            if (soLuongHetHan > 0)
+            {
+                MessageBox.Show($"Có {soLuongHetHan} lô hàng đã hết hạn!", "Cảnh báo", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        private void Grid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            // Chỉ xử lý nếu có dòng dữ liệu
+            if (e.RowIndex < 0 || grid.Rows[e.RowIndex].IsNewRow) return;
+
+            var row = grid.Rows[e.RowIndex];
+            if (row.Cells["HanSuDung"].Value != null && row.Cells["HanSuDung"].Value != DBNull.Value)
+            {
                 DateTime hsd = Convert.ToDateTime(row.Cells["HanSuDung"].Value);
 
                 if (hsd < DateTime.Today)
                 {
-                    // Hết hạn: nền đỏ, chữ trắng
-                    soLuongHetHan++;
-                    row.DefaultCellStyle.BackColor = Color.Red;
-                    row.DefaultCellStyle.ForeColor = Color.White;
-                    row.DefaultCellStyle.SelectionBackColor = Color.DarkRed;
+                    // Hết hạn: Đỏ
+                    e.CellStyle.BackColor = Color.Red;
+                    e.CellStyle.ForeColor = Color.White;
+                    e.CellStyle.SelectionBackColor = Color.DarkRed;
                 }
                 else if ((hsd - DateTime.Today).TotalDays <= 7)
                 {
-                    // Sắp hết hạn (≤7 ngày): nền vàng, chữ đen
-                    row.DefaultCellStyle.BackColor = Color.Yellow;
-                    row.DefaultCellStyle.ForeColor = Color.Black;
-                    row.DefaultCellStyle.SelectionBackColor = Color.Goldenrod;
+                    // Sắp hết hạn: Vàng
+                    e.CellStyle.BackColor = Color.Yellow;
+                    e.CellStyle.ForeColor = Color.Black;
+                    e.CellStyle.SelectionBackColor = Color.Goldenrod;
                 }
-            }
-
-            // Hiện cảnh báo 1 lần
-            if (soLuongHetHan > 0)
-            {
-                MessageBox.Show(
-                    $"Có {soLuongHetHan} lô hàng đã hết hạn sử dụng!",
-                    "Cảnh báo hết hạn",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                else
+                {
+                    // Hàng bình thường: Trả về mặc định (tránh lỗi màu cũ khi search)
+                    row.DefaultCellStyle.BackColor = Color.White;
+                    row.DefaultCellStyle.ForeColor = Color.Black;
+                }
             }
         }
         void Grid_SelectionChanged(object sender, EventArgs e)
