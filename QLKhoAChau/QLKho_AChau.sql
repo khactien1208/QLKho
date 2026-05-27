@@ -229,3 +229,125 @@ FOREIGN KEY (MaNCC) REFERENCES NhaCungCap(MaNCC);
 --thêm NSX
 ALTER TABLE HangHoa
 ADD NgaySanXuat DATE;
+
+/* =====================================================================
+   MIGRATION: Nâng cấp sang quản lý theo LÔ HÀNG
+   Chạy trên DB đã tồn tại — KHÔNG tạo lại DB
+   ===================================================================== */
+USE QLKho_AChau;
+GO
+
+-- BƯỚC 1: Bỏ UNIQUE trên MaSP để cho phép nhiều lô cùng mã
+DECLARE @uq NVARCHAR(200);
+SELECT @uq = kc.CONSTRAINT_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc
+JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc ON kc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+WHERE kc.TABLE_NAME='HangHoa' AND kc.COLUMN_NAME='MaSP' AND tc.CONSTRAINT_TYPE='UNIQUE';
+IF @uq IS NOT NULL EXEC('ALTER TABLE HangHoa DROP CONSTRAINT ' + @uq);
+GO
+
+-- BƯỚC 2: Thêm NgayNhapLo
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='HangHoa' AND COLUMN_NAME='NgayNhapLo')
+    ALTER TABLE HangHoa ADD NgayNhapLo DATETIME NOT NULL DEFAULT GETDATE();
+GO
+
+-- BƯỚC 3: Thêm TrangThaiLo
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='HangHoa' AND COLUMN_NAME='TrangThaiLo')
+    ALTER TABLE HangHoa ADD TrangThaiLo NVARCHAR(20) NOT NULL DEFAULT N'BinhThuong';
+GO
+
+-- BƯỚC 4: Thêm LoaiPhieu vào PhieuXuat
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='PhieuXuat' AND COLUMN_NAME='LoaiPhieu')
+    ALTER TABLE PhieuXuat ADD LoaiPhieu NVARCHAR(20) NOT NULL DEFAULT N'XuatBan';
+GO
+
+-- BƯỚC 5: Sửa trigger nhập — KHÔNG cộng dồn TonKho vào dòng cũ
+--         TonKho đã = SoLuong ngay lúc INSERT HangHoa mới trong DAL
+ALTER TRIGGER trg_CTNhap_Insert ON ChiTietNhap AFTER INSERT AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE p SET TongTien = ISNULL((SELECT SUM(ThanhTien) FROM ChiTietNhap WHERE MaPN=p.MaPN),0)
+    FROM PhieuNhap p JOIN inserted i ON p.MaPN=i.MaPN;
+END
+GO
+
+-- BƯỚC 6: Sửa trigger nhập delete — đánh dấu lô vô hiệu thay vì trừ TonKho
+ALTER TRIGGER trg_CTNhap_Delete ON ChiTietNhap AFTER DELETE AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE HangHoa SET TrangThai=0 WHERE MaHH IN (SELECT MaHH FROM deleted);
+    UPDATE p SET TongTien = ISNULL((SELECT SUM(ThanhTien) FROM ChiTietNhap WHERE MaPN=p.MaPN),0)
+    FROM PhieuNhap p JOIN deleted d ON p.MaPN=d.MaPN;
+END
+GO
+
+-- BƯỚC 7: Sửa trigger xuất — trừ đúng lô + đánh dấu TrangThaiLo=Huy khi TonKho=0
+ALTER TRIGGER trg_CTXuat_Insert ON ChiTietXuat AFTER INSERT AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM inserted i JOIN HangHoa h ON h.MaHH=i.MaHH WHERE h.TonKho < i.SoLuong)
+    BEGIN RAISERROR(N'Số lượng xuất vượt quá tồn kho của lô này!',16,1); ROLLBACK TRANSACTION; RETURN; END
+    UPDATE h SET TonKho = h.TonKho - i.SoLuong FROM HangHoa h JOIN inserted i ON h.MaHH=i.MaHH;
+    UPDATE HangHoa SET TrangThaiLo=N'Huy' WHERE MaHH IN (SELECT MaHH FROM inserted) AND TonKho=0;
+    UPDATE p SET TongTien = ISNULL((SELECT SUM(ThanhTien) FROM ChiTietXuat WHERE MaPX=p.MaPX),0)
+    FROM PhieuXuat p JOIN inserted i ON p.MaPX=i.MaPX;
+END
+GO
+
+-- BƯỚC 8: Sửa trigger xuất delete — hoàn lại TonKho đúng lô
+ALTER TRIGGER trg_CTXuat_Delete ON ChiTietXuat AFTER DELETE AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE h SET TonKho = h.TonKho + d.SoLuong FROM HangHoa h JOIN deleted d ON h.MaHH=d.MaHH;
+    UPDATE HangHoa SET TrangThaiLo=N'BinhThuong'
+    WHERE MaHH IN (SELECT MaHH FROM deleted) AND TonKho>0 AND TrangThaiLo=N'Huy'
+      AND HanSuDung >= CAST(GETDATE() AS DATE);
+    UPDATE p SET TongTien = ISNULL((SELECT SUM(ThanhTien) FROM ChiTietXuat WHERE MaPX=p.MaPX),0)
+    FROM PhieuXuat p JOIN deleted d ON p.MaPX=d.MaPX;
+END
+GO
+
+-- BƯỚC 9: Sửa VIEW — hiển thị theo từng lô (bỏ GROUP BY MaSP cũ)
+DROP VIEW IF EXISTS vw_NhapXuatTon;
+GO
+CREATE VIEW vw_NhapXuatTon AS
+SELECT h.MaHH, h.MaSP, h.TenHH, h.DonViTinh, dm.TenDM, ncc.TenNCC,
+       h.NgayNhapLo, h.NgaySanXuat, h.HanSuDung, h.TrangThaiLo,
+       ISNULL((SELECT SUM(ct.SoLuong) FROM ChiTietNhap ct WHERE ct.MaHH=h.MaHH),0) AS TongNhap,
+       ISNULL((SELECT SUM(ct.SoLuong) FROM ChiTietXuat ct WHERE ct.MaHH=h.MaHH),0) AS TongXuat,
+       h.TonKho, h.TonToiThieu,
+       CASE
+           WHEN h.HanSuDung < CAST(GETDATE() AS DATE)                  THEN N'HetHan'
+           WHEN h.HanSuDung <= CAST(DATEADD(DAY,7,GETDATE()) AS DATE)  THEN N'SapHetHan'
+           WHEN h.TonKho <= h.TonToiThieu                              THEN N'TonThap'
+           ELSE N'BinhThuong'
+       END AS TrangThaiTon
+FROM HangHoa h
+JOIN DanhMuc dm ON dm.MaDM=h.MaDM
+LEFT JOIN NhaCungCap ncc ON ncc.MaNCC=h.MaNCC
+WHERE h.TrangThai=1;
+GO
+
+-- BƯỚC 10: Sửa SP cảnh báo — thêm cảnh báo hết hạn / sắp hết hạn
+ALTER PROCEDURE sp_CanhBaoTonThap AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT h.MaHH, h.MaSP, h.TenHH, dm.TenDM, h.DonViTinh, h.TonKho, h.TonToiThieu,
+           h.HanSuDung, h.NgayNhapLo,
+           CASE
+               WHEN h.HanSuDung < CAST(GETDATE() AS DATE)                  THEN N'Hết hạn'
+               WHEN h.HanSuDung <= CAST(DATEADD(DAY,7,GETDATE()) AS DATE)  THEN N'Sắp hết hạn'
+               ELSE N'Tồn thấp'
+           END AS TinhTrang,
+           (h.TonToiThieu - h.TonKho) AS CanNhapThem
+    FROM HangHoa h JOIN DanhMuc dm ON dm.MaDM=h.MaDM
+    WHERE h.TrangThai=1
+      AND (h.TonKho <= h.TonToiThieu OR h.HanSuDung <= CAST(DATEADD(DAY,7,GETDATE()) AS DATE))
+    ORDER BY
+        CASE WHEN h.HanSuDung < CAST(GETDATE() AS DATE) THEN 2 ELSE 1 END,
+        h.HanSuDung ASC;
+END
+GO
+
+PRINT N'>>> Migration lô hàng hoàn tất!';
+GO
