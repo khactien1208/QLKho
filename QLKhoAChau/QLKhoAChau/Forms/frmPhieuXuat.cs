@@ -21,7 +21,7 @@ namespace QLKhoAChau.Forms
         {
             Text = "Phiếu xuất"; BackColor = Color.WhiteSmoke;
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 110, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White };
             var lblTitle = new Label
             {
                 Text = "PHIẾU XUẤT KHO",
@@ -109,7 +109,17 @@ namespace QLKhoAChau.Forms
                 int id = (int)gridPhieu.CurrentRow.Cells["MaPX"].Value;
                 gridChiTiet.DataSource = PhieuXuatDAL.GetChiTiet(id);
             };
-            split.Panel1.Controls.Add(gridPhieu);
+            var pnlGrid = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10, 100, 10, 10),
+                BackColor = Color.WhiteSmoke
+            };
+
+            pnlGrid.Controls.Add(gridPhieu);
+
+            split.Panel1.Controls.Clear();
+            split.Panel1.Controls.Add(pnlGrid);
 
             var split2 = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 480 };
             split.Panel2.Controls.Add(split2);
@@ -272,9 +282,44 @@ namespace QLKhoAChau.Forms
             gridPhieu.DataSource = coFilter
                 ? PhieuXuatDAL.Filter(kw, tuNgay, denNgay, loaiPhieu)
                 : PhieuXuatDAL.GetAll();
-            if (gridPhieu.Columns.Contains("MaPX"))     gridPhieu.Columns["MaPX"].Visible = false;
-            if (gridPhieu.Columns.Contains("TongTien"))  gridPhieu.Columns["TongTien"].DefaultCellStyle.Format  = "N0";
-            if (gridPhieu.Columns.Contains("NgayXuat"))  gridPhieu.Columns["NgayXuat"].DefaultCellStyle.Format  = "dd/MM/yyyy HH:mm";
+
+            if (gridPhieu.Columns.Contains("MaPX"))
+                gridPhieu.Columns["MaPX"].Visible = false;
+
+            if (gridPhieu.Columns.Contains("SoPhieu"))
+            {
+                gridPhieu.Columns["SoPhieu"].HeaderText = "Số phiếu";
+                gridPhieu.Columns["SoPhieu"].FillWeight = 120;
+            }
+
+            if (gridPhieu.Columns.Contains("NgayXuat"))
+            {
+                gridPhieu.Columns["NgayXuat"].HeaderText = "Ngày xuất";
+                gridPhieu.Columns["NgayXuat"].DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
+            }
+
+            if (gridPhieu.Columns.Contains("TenKH"))
+            {
+                gridPhieu.Columns["TenKH"].HeaderText = "Khách hàng";
+                gridPhieu.Columns["TenKH"].FillWeight = 180;
+            }
+
+            if (gridPhieu.Columns.Contains("NguoiXuat"))
+            {
+                gridPhieu.Columns["NguoiXuat"].HeaderText = "Người xuất";
+            }
+
+            if (gridPhieu.Columns.Contains("LoaiPhieu"))
+            {
+                gridPhieu.Columns["LoaiPhieu"].HeaderText = "Loại phiếu";
+            }
+
+            if (gridPhieu.Columns.Contains("TongTien"))
+            {
+                gridPhieu.Columns["TongTien"].HeaderText = "Tổng tiền";
+                gridPhieu.Columns["TongTien"].DefaultCellStyle.Format = "N0";
+            }
+
             // Tô màu dòng XuatHuy
             foreach (DataGridViewRow row in gridPhieu.Rows)
                 if (row.Cells["LoaiPhieu"]?.Value?.ToString() == "XuatHuy")

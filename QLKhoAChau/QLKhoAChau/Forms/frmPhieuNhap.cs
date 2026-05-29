@@ -11,21 +11,21 @@ namespace QLKhoAChau.Forms
     {
         DataGridView gridPhieu, gridChiTiet, gridTemp;
         TextBox txtSoPhieu, txtGhiChu, txtSL, txtDonGia;
-        TextBox txtGiaBanLo, txtTonToiThieu;           // THÊM MỚI: thông tin lô
-        ComboBox cboNCC, cboHH;                        // cboHH = combo chọn SP cũ
-        ComboBox cboDMMoi, cboNCCMoi;                  // THÊM MỚI: cho SP mới
-        TextBox txtMaSPMoi, txtTenMoi, txtDVTMoi;      // THÊM MỚI: nhập SP mới
-        DateTimePicker dtpNSX, dtpHSD;                 // THÊM MỚI: hạn sử dụng
-        RadioButton rdoSPCu, rdoSPMoi;                 // THÊM MỚI: chọn chế độ
-        Panel pnlSpCu, pnlSpMoi;                       // THÊM MỚI: 2 panel ẩn/hiện
-        Button btnNew, btnAddItem, btnSave, btnNewHH, btnNewDM, btnNewNCC;
+        TextBox txtGiaBanLo, txtTonToiThieu;           
+        ComboBox cboNCC, cboHH;                        
+        ComboBox cboDMMoi, cboNCCMoi;                  
+        TextBox txtMaSPMoi, txtTenMoi, txtDVTMoi;      
+        DateTimePicker dtpNSX, dtpHSD;                 
+        RadioButton rdoSPCu, rdoSPMoi;                 
+        Panel pnlSpCu, pnlSpMoi;                       
+        Button btnNew, btnAddItem, btnSave, btnNewHH;
         DataTable dtTemp;
 
         public frmPhieuNhap()
         {
             Text = "Phiếu nhập"; BackColor = Color.WhiteSmoke;
 
-            var top = new Panel { Dock = DockStyle.Top, Height = 110, BackColor = Color.White };
+            var top = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White };
             var lblTitle = new Label
             {
                 Text = "PHIẾU NHẬP KHO",
@@ -97,10 +97,17 @@ namespace QLKhoAChau.Forms
                 dtpTu, dtpDen, chkLoc, btnLoc, btnReset, btnExcel
             });
 
-            var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 250 };
-            Controls.Add(split);
             Controls.Add(top);
-            top.BringToFront();
+
+            var split = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Horizontal,
+                SplitterDistance = 250,
+                Location = new Point(0, top.Height)
+            };
+
+            Controls.Add(split);
 
             gridPhieu = NewGrid();
             gridPhieu.SelectionChanged += (s, e) => {
@@ -109,7 +116,17 @@ namespace QLKhoAChau.Forms
                 int id = (int)gridPhieu.CurrentRow.Cells["MaPN"].Value;
                 gridChiTiet.DataSource = PhieuNhapDAL.GetChiTiet(id);
             };
-            split.Panel1.Controls.Add(gridPhieu);
+            var pnlGrid = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10, 100, 10, 10),
+                BackColor = Color.WhiteSmoke
+            };
+
+            pnlGrid.Controls.Add(gridPhieu);
+
+            split.Panel1.Controls.Clear();
+            split.Panel1.Controls.Add(pnlGrid);
 
             var split2 = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 480 };
             split.Panel2.Controls.Add(split2);
@@ -324,9 +341,37 @@ namespace QLKhoAChau.Forms
             gridPhieu.DataSource = coFilter
                 ? PhieuNhapDAL.Filter(kw, tuNgay, denNgay)
                 : PhieuNhapDAL.GetAll();
-            if (gridPhieu.Columns.Contains("MaPN"))    gridPhieu.Columns["MaPN"].Visible = false;
-            if (gridPhieu.Columns.Contains("TongTien")) gridPhieu.Columns["TongTien"].DefaultCellStyle.Format = "N0";
-            if (gridPhieu.Columns.Contains("NgayNhap")) gridPhieu.Columns["NgayNhap"].DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
+
+            if (gridPhieu.Columns.Contains("MaPN")) gridPhieu.Columns["MaPN"].Visible = false;
+
+            if (gridPhieu.Columns.Contains("SoPhieu"))
+            {
+                gridPhieu.Columns["SoPhieu"].HeaderText = "Số phiếu";
+                gridPhieu.Columns["SoPhieu"].FillWeight = 120;
+            }
+
+            if (gridPhieu.Columns.Contains("NgayNhap"))
+            {
+                gridPhieu.Columns["NgayNhap"].HeaderText = "Ngày nhập";
+                gridPhieu.Columns["NgayNhap"].DefaultCellStyle.Format = "dd/MM/yyyy HH:mm";
+            }
+
+            if (gridPhieu.Columns.Contains("TenNCC"))
+            {
+                gridPhieu.Columns["TenNCC"].HeaderText = "Nhà cung cấp";
+                gridPhieu.Columns["TenNCC"].FillWeight = 180;
+            }
+
+            if (gridPhieu.Columns.Contains("NguoiNhap"))
+            {
+                gridPhieu.Columns["NguoiNhap"].HeaderText = "Người nhập";
+            }
+
+            if (gridPhieu.Columns.Contains("TongTien"))
+            {
+                gridPhieu.Columns["TongTien"].HeaderText = "Tổng tiền";
+                gridPhieu.Columns["TongTien"].DefaultCellStyle.Format = "N0";
+            }
         }
 
         // Xuất DataGridView hiện tại ra Excel (CSV UTF-8 mở được bằng Excel)
