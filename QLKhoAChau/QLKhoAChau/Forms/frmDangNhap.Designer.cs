@@ -1,6 +1,9 @@
-﻿namespace QLKhoAChau.Forms
+﻿using System.Drawing;
+using System.Windows.Forms;
+
+namespace QLKhoAChau.Forms
 {
-    partial class frmDangNhap1
+    partial class frmDangNhap
     {
         private TextBox txtUser;
         private TextBox txtPass;
@@ -29,7 +32,7 @@
             // 
             txtUser.Location = new Point(150, 87);
             txtUser.Name = "txtUser";
-            txtUser.Size = new Size(220, 27);
+            txtUser.Size = new Size(220, 23);
             txtUser.TabIndex = 3;
             txtUser.Text = "admin";
             // 
@@ -37,7 +40,7 @@
             // 
             txtPass.Location = new Point(150, 122);
             txtPass.Name = "txtPass";
-            txtPass.Size = new Size(220, 27);
+            txtPass.Size = new Size(220, 23);
             txtPass.TabIndex = 5;
             txtPass.Text = "admin123";
             txtPass.UseSystemPasswordChar = true;
@@ -90,7 +93,7 @@
             lblU.AutoSize = true;
             lblU.Location = new Point(40, 90);
             lblU.Name = "lblU";
-            lblU.Size = new Size(110, 20);
+            lblU.Size = new Size(89, 15);
             lblU.TabIndex = 2;
             lblU.Text = "Tên đăng nhập:";
             // 
@@ -99,15 +102,15 @@
             lblP.AutoSize = true;
             lblP.Location = new Point(40, 125);
             lblP.Name = "lblP";
-            lblP.Size = new Size(73, 20);
+            lblP.Size = new Size(60, 15);
             lblP.TabIndex = 4;
             lblP.Text = "Mật khẩu:";
             // 
-            // frmDangNhap1
+            // frmDangNhap
             // 
             AcceptButton = btnLogin;
             BackColor = Color.White;
-            ClientSize = new Size(402, 233);
+            ClientSize = new Size(404, 241);
             Controls.Add(lblTitle);
             Controls.Add(lblSub);
             Controls.Add(lblU);
@@ -119,7 +122,7 @@
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            Name = "frmDangNhap1";
+            Name = "frmDangNhap";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Đăng nhập - Quản lý kho Á Châu";
             ResumeLayout(false);

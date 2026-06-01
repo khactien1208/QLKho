@@ -14,7 +14,7 @@ namespace QLKhoAChau
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            using (var login = new frmDangNhap1())
+            using (var login = new frmDangNhap())
             {
                 if (login.ShowDialog() == DialogResult.OK && CurrentUser != null)
                 {

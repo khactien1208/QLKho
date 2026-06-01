@@ -1,19 +1,12 @@
-﻿using QLKhoAChau.DAL;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows.Forms;
+using QLKhoAChau.DAL;
 
 namespace QLKhoAChau.Forms
 {
-    public partial class frmDangNhap1 : Form
+    public partial class frmDangNhap : Form
     {
-        public frmDangNhap1()
+        public frmDangNhap()
         {
             InitializeComponent();
         }
