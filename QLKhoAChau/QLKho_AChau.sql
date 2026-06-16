@@ -201,12 +201,6 @@ INSERT INTO HangHoa(MaSP,TenHH,MaDM,DonViTinh,GiaNhap,GiaBan,TonKho,TonToiThieu,
 (N'BTT001',N'Bánh trung thu Kinh Đô 2 trứng',5,N'Hộp',180000,250000,60,20,'2025-10-15');
 
 DECLARE @MaND INT = 1;
-INSERT INTO PhieuNhap(SoPhieu,MaNCC,MaND,GhiChu) VALUES (N'PN0001',1,@MaND,N'Nhập đầu tháng');
-INSERT INTO ChiTietNhap(MaPN,MaHH,SoLuong,DonGia) VALUES
-((SELECT MaPN FROM PhieuNhap WHERE SoPhieu='PN0001'),1,100,18000),
-((SELECT MaPN FROM PhieuNhap WHERE SoPhieu='PN0001'),2,50,22000);
-
-DECLARE @MaND INT = 1;
 INSERT INTO PhieuXuat(SoPhieu,MaKH,MaND,GhiChu) VALUES (N'PX0001',1,@MaND,N'Xuất sỉ Coopmart');
 INSERT INTO ChiTietXuat(MaPX,MaHH,SoLuong,DonGia) VALUES
 ((SELECT MaPX FROM PhieuXuat WHERE SoPhieu='PX0001'),1,20,25000),

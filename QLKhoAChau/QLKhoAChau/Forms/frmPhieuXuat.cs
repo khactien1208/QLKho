@@ -142,7 +142,7 @@ namespace QLKhoAChau.Forms
 
         private void btnExcel_Click(object sender, EventArgs e)
         {
-            XuatExcel(gridPhieu, "PhieuXuat");
+            XuatExcel(gridPhieu, gridChiTiet, "PhieuXuat");
         }
 
         // =====================================================================
@@ -324,16 +324,19 @@ namespace QLKhoAChau.Forms
         // =====================================================================
         //  XUẤT EXCEL
         // =====================================================================
-
-        private void XuatExcel(DataGridView dgv, string tenFile)
+        private void XuatExcel(DataGridView dgv1, DataGridView dgv2, string tenFile)
         {
-            if (dgv.Rows.Count == 0) { MessageBox.Show("Không có dữ liệu để xuất!"); return; }
+            if ((dgv1 == null || dgv1.Rows.Count == 0) && (dgv2 == null || dgv2.Rows.Count == 0))
+            {
+                MessageBox.Show("Không có dữ liệu để xuất!");
+                return;
+            }
 
             var dlg = new SaveFileDialog
             {
-                Filter   = "Excel CSV (*.csv)|*.csv",
+                Filter = "Excel CSV (*.csv)|*.csv",
                 FileName = $"{tenFile}_{DateTime.Today:yyyyMMdd}.csv",
-                Title    = "Lưu file Excel"
+                Title = "Lưu file Excel"
             };
             if (dlg.ShowDialog() != DialogResult.OK) return;
 
@@ -341,30 +344,114 @@ namespace QLKhoAChau.Forms
             {
                 var sb = new StringBuilder();
 
-                var headers = new List<string>();
-                foreach (DataGridViewColumn col in dgv.Columns)
-                    if (col.Visible) headers.Add("\"" + col.HeaderText + "\"");
-                sb.AppendLine(string.Join(",", headers));
+                var headerParts = new List<string>();
+                headerParts.Add("\"MaPX\"");
 
-                foreach (DataGridViewRow row in dgv.Rows)
+                var dgv1VisibleCols = new List<DataGridViewColumn>();
+                if (dgv1 != null)
                 {
-                    if (row.IsNewRow) continue;
-                    var cells = new List<string>();
-                    foreach (DataGridViewColumn col in dgv.Columns)
+                    foreach (DataGridViewColumn col in dgv1.Columns)
                     {
                         if (!col.Visible) continue;
-                        string val = row.Cells[col.Index].FormattedValue?.ToString() ?? "";
-                        cells.Add("\"" + val.Replace("\"", "\"\"") + "\"");
+                        if (string.Equals(col.Name, "MaPX", StringComparison.OrdinalIgnoreCase)) continue;
+                        dgv1VisibleCols.Add(col);
+                        headerParts.Add("\"" + col.HeaderText.Replace("\"", "\"\"") + "\"");
                     }
-                    sb.AppendLine(string.Join(",", cells));
                 }
 
-                System.IO.File.WriteAllText(dlg.FileName, sb.ToString(),
-                    new UTF8Encoding(true));
+                var dgv2VisibleCols = new List<DataGridViewColumn>();
+                if (dgv2 != null)
+                {
+                    foreach (DataGridViewColumn col in dgv2.Columns)
+                    {
+                        if (!col.Visible) continue;
+                        if (string.Equals(col.Name, "MaPX", StringComparison.OrdinalIgnoreCase)) continue;
+                        bool exists = dgv1VisibleCols.Exists(c => string.Equals(c.HeaderText, col.HeaderText, StringComparison.OrdinalIgnoreCase));
+                        if (exists) continue;
+                        dgv2VisibleCols.Add(col);
+                        headerParts.Add("\"" + col.HeaderText.Replace("\"", "\"\"") + "\"");
+                    }
+                }
+
+                sb.AppendLine(string.Join(",", headerParts));
+
+                if (dgv1 != null)
+                {
+                    foreach (DataGridViewRow phRow in dgv1.Rows)
+                    {
+                        if (phRow.IsNewRow) continue;
+
+                        object oMa = null;
+                        if (dgv1.Columns.Contains("MaPX"))
+                            oMa = phRow.Cells["MaPX"].Value;
+                        if (oMa == null || oMa == DBNull.Value) continue;
+                        string maPXStr = oMa.ToString();
+
+                        DataTable dtChi = null;
+                        try
+                        {
+                            if (int.TryParse(maPXStr, out int maPXInt))
+                                dtChi = PhieuXuatDAL.GetChiTiet(maPXInt);
+                        }
+                        catch { dtChi = null; }
+
+                        if (dtChi == null || dtChi.Rows.Count == 0)
+                        {
+                            var parts = new List<string>();
+                            parts.Add("\"" + maPXStr.Replace("\"", "\"\"") + "\"");
+                            foreach (var col in dgv1VisibleCols)
+                            {
+                                string val = phRow.Cells[col.Index].FormattedValue?.ToString() ?? "";
+                                parts.Add("\"" + val.Replace("\"", "\"\"") + "\"");
+                            }
+                            foreach (var col in dgv2VisibleCols)
+                                parts.Add("\"\"");
+
+                            sb.AppendLine(string.Join(",", parts));
+                        }
+                        else
+                        {
+                            foreach (DataRow chiRow in dtChi.Rows)
+                            {
+                                var parts = new List<string>();
+                                parts.Add("\"" + maPXStr.Replace("\"", "\"\"") + "\"");
+
+                                foreach (var col in dgv1VisibleCols)
+                                {
+                                    string val = phRow.Cells[col.Index].FormattedValue?.ToString() ?? "";
+                                    parts.Add("\"" + val.Replace("\"", "\"\"") + "\"");
+                                }
+
+                                foreach (var col in dgv2VisibleCols)
+                                {
+                                    string colName = col.Name;
+                                    string val = "";
+                                    if (dtChi.Columns.Contains(colName) && chiRow[colName] != DBNull.Value)
+                                        val = chiRow[colName].ToString();
+                                    parts.Add("\"" + val.Replace("\"", "\"\"") + "\"");
+                                }
+
+                                sb.AppendLine(string.Join(",", parts));
+                            }
+                        }
+                    }
+                }
+
+                System.IO.File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
 
                 if (MessageBox.Show("Xuất Excel thành công!\nMở file ngay?", "Thành công",
                         MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
-                    System.Diagnostics.Process.Start(dlg.FileName);
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = dlg.FileName,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch { /* ignore */ }
+                }
             }
             catch (Exception ex) { MessageBox.Show("Lỗi xuất Excel: " + ex.Message); }
         }
